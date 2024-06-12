@@ -324,7 +324,6 @@ def test(n_trials=5, code="mgold_61_6521"):
             highlights[key] = [0]
     highlights["stt"] = [0]
 
-    keyboard.log(["visual", "param", "codes", json.dumps(codes)])
 
 
     # Wait for start
@@ -334,6 +333,9 @@ def test(n_trials=5, code="mgold_61_6521"):
     event.waitKeys()
     keyboard.set_field_text("text", "")
     logger.info("Starting.")
+
+    # Log codes
+    keyboard.log(["visual", "param", "codes", json.dumps(codes)])
 
     # Start experiment
     keyboard.log(marker=["visual", "cmd", "start_experiment", ""])
@@ -354,12 +356,12 @@ def test(n_trials=5, code="mgold_61_6521"):
         target = rand_order.pop()
         logger.debug("target = " + str(target))
 
-        nr_columns = max(len(row) for row in KEYS)
         row_index = 0
-        while target >= len(KEYS[row_index]):
-            target -= len(KEYS[row_index])
+        target_ = target
+        while target_ >= len(KEYS[row_index]):
+            target_ -= len(KEYS[row_index])
             row_index += 1
-        target_key = KEYS[row_index][target]
+        target_key = KEYS[row_index][target_]
         logger.info(f"{1 + i_trial:03d}/{len(flatten(KEYS))}\t{target_key}\t{target}")
 
         keyboard.log(["visual", "param", "target", json.dumps(target)])
