@@ -19,8 +19,6 @@ modules_root = '../'                                                            
     # random_data = true --> use the start random button!
 
 
-
-
 [macros]
 
 [macros.start_streaming]
