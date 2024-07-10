@@ -58,6 +58,7 @@ CUE_TIME = 0.8
 TRIAL_TIME = 4.2
 FEEDBACK_TIME = 0.5
 ITI_TIME = 0.5
+CODE = "mgold_61_6521"
 
 
 def flatten(list):
@@ -101,7 +102,7 @@ class Keyboard(object):
         # Setup LSL stream
         self.stream = stream
         if self.stream:
-            self.outlet = StreamOutlet(StreamInfo(name='KeyboardMarkerStream', type='Markers', channel_count=4, nominal_srate=0, channel_format='string', source_id='KeyboardMarkerStream'))
+            self.outlet = StreamOutlet(StreamInfo(name='KeyboardMarkerStream', type='Markers', channel_count=1, nominal_srate=0, channel_format='string', source_id='KeyboardMarkerStream'))
 
     def get_size(self):
         """
@@ -271,7 +272,7 @@ class Keyboard(object):
         self.window.close()
         # core.quit()
 
-def test(n_trials=5, code="mgold_61_6521"):
+def training(code=CODE):
     """
     Example experiment with initial setup and highlighting and presenting a few trials.
     """
@@ -335,10 +336,10 @@ def test(n_trials=5, code="mgold_61_6521"):
     logger.info("Starting.")
 
     # Log codes
-    keyboard.log(["visual", "param", "codes", json.dumps(codes)])
+    keyboard.log([json.dumps({"codes":codes})])
 
     # Start experiment
-    keyboard.log(marker=["visual", "cmd", "start_experiment", ""])
+    keyboard.log(marker=["start_experiment"])
     keyboard.set_field_text("text", "Starting...")
     keyboard.run(highlights, 5.0)
     keyboard.set_field_text("text", "")
@@ -364,20 +365,20 @@ def test(n_trials=5, code="mgold_61_6521"):
         target_key = KEYS[row_index][target_]
         logger.info(f"{1 + i_trial:03d}/{len(flatten(KEYS))}\t{target_key}\t{target}")
 
-        keyboard.log(["visual", "param", "target", json.dumps(target)])
-        keyboard.log(["visual", "param", "key", json.dumps(target_key)])
+        keyboard.log([json.dumps({"target":target})])
+        keyboard.log([json.dumps({"target key":target_key})])
 
         # Cue
         highlights[target_key] = [-2]
         keyboard.run(highlights, CUE_TIME,
-            start_marker=["visual", "cmd", "start_cue", json.dumps(1+i_trial)],
-            stop_marker=["visual", "cmd", "stop_cue", json.dumps(1+i_trial)])
+            start_marker=["start_cue"],
+            stop_marker=["stop_cue"])
         highlights[target_key] = [0]
 
         # Trial
         keyboard.run(codes, TRIAL_TIME,
-            start_marker=["visual", "cmd", "start_trial", json.dumps(1+i_trial)],
-            stop_marker=["visual", "cmd", "stop_trial", json.dumps(1+i_trial)])
+            start_marker=["start_trial"],
+            stop_marker=["stop_trial"])
 
         # Update text
         text += target_key
@@ -386,14 +387,14 @@ def test(n_trials=5, code="mgold_61_6521"):
         # Feedback
         highlights[target_key] = [-1]
         keyboard.run(highlights, FEEDBACK_TIME,
-            start_marker=["visual", "cmd", "start_feedback", json.dumps(1+i_trial)],
-            stop_marker=["visual", "cmd", "stop_feedback", json.dumps(1+i_trial)])
+            start_marker=["start_feedback"],
+            stop_marker=["stop_feedback"])
         highlights[target_key] = [0]
 
         # Inter-trial time
         keyboard.run(highlights, ITI_TIME,
-            start_marker=["visual", "cmd", "start_intertrial", json.dumps(1+i_trial)],
-            stop_marker=["visual", "cmd", "stop_intertrial", json.dumps(1+i_trial)])
+            start_marker=["start_intertrial"],
+            stop_marker=["stop_intertrial"])
 
         i_trial += 1
 
@@ -460,7 +461,7 @@ def test(n_trials=5, code="mgold_61_6521"):
     # Stop experiment
 
         # Wait for start
-    keyboard.log(marker=["visual", "cmd", "stop_experiment", ""])
+    keyboard.log(marker=["stop_experiment"])
     keyboard.window.setMouseVisible(True)
     keyboard.set_field_text("text", "Experiment finished. Press button to close.")
     logger.info("Experiment finished. Press button to close.")
@@ -473,7 +474,149 @@ def test(n_trials=5, code="mgold_61_6521"):
     logger.info("Experiment closed.")
 
     return 0
+def online(n_trials = 10, code=CODE):
+    """
+    Example experiment with initial setup and highlighting and presenting a few trials.
+    """
+    logger.setLevel(10)
 
+    # Initialize keyboard
+    keyboard = Keyboard(size=SCREEN_SIZE, width=SCREEN_WIDTH, distance=SCREEN_DISTANCE, screen=SCREEN, window_color=SCREEN_COLOR, stream=STREAM)
+    ppd = keyboard.get_pixels_per_degree()
+
+    # Add stimulus timing tracker at left top of the screen
+    x_pos = -SCREEN_SIZE[0] / 2 + STT_WIDTH / 2 * ppd
+    y_pos = SCREEN_SIZE[1] / 2 - STT_HEIGHT / 2 * ppd
+    images = ["images/black.png", "images/white.png"]
+    keyboard.add_key("stt", (STT_WIDTH * ppd, STT_HEIGHT * ppd), (x_pos, y_pos), images)
+
+    # Add text field at the top of the screen
+    x_pos = STT_WIDTH * ppd
+    y_pos = SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2
+    keyboard.add_text_field("text", "", (SCREEN_SIZE[0] - STT_WIDTH * ppd, TEXT_FIELD_HEIGHT * ppd), (x_pos, y_pos), (0, 0, 0), (-1, -1, -1))
+
+    # Add the keys
+    for y in range(len(KEYS)):
+        for x in range(len(KEYS[y])):
+            x_pos = (x - len(KEYS[y]) / 2 + 0.5) * (KEY_WIDTH + KEY_SPACE) * ppd
+            y_pos = -(y - len(KEYS) / 2) * (KEY_HEIGHT + KEY_SPACE) * ppd - TEXT_FIELD_HEIGHT * ppd
+            images = [f"images/{KEYS[y][x]}_{color}.png" for color in KEY_COLORS]
+            keyboard.add_key(KEYS[y][x], (KEY_WIDTH * ppd, KEY_HEIGHT * ppd), (x_pos, y_pos), images)
+
+    # Load sequences
+    if code != "onoff":
+        tmp = np.load(f"C:/Users/Thijs/Documents/Studie/Thesis/Speller Project/dp-speller/speller/codes/{code}.npz")["codes"]
+    codes = dict()
+    i = 0
+    for row in KEYS:
+        for key in row:
+            if code == "onoff":
+                codes[key] = [1, 0]
+            else:
+                codes[key] = tmp[:, i].tolist()
+            i += 1
+    if code == "onoff":
+        codes["stt"] = [1, 0]
+    else:
+        codes["stt"] = [1] + [0] * int((1 + TRIAL_TIME) * keyboard.get_framerate())
+
+    # Set highlights
+    highlights = dict()
+    for row in KEYS:
+        for key in row:
+            highlights[key] = [0]
+    highlights["stt"] = [0]
+
+
+
+    # Wait for start
+    keyboard.window.setMouseVisible(True)
+    keyboard.set_field_text("text", "Press button to start.")
+    logger.info("Press button to start.")
+    event.waitKeys()
+    keyboard.set_field_text("text", "")
+    logger.info("Starting.")
+
+    # Log codes
+    keyboard.log([json.dumps({"codes":codes})])
+
+    # Start experiment
+    keyboard.log(marker=["start_experiment"])
+    keyboard.set_field_text("text", "Starting...")
+    keyboard.run(highlights, 5.0)
+    keyboard.set_field_text("text", "")
+
+
+    # Code for typing and interaction
+    mouse = event.Mouse(visible=False)
+    text = ""
+
+    i = 0
+    while i < n_trials:
+        key_pressed = False
+        mouse.setVisible(1)
+        while not mouse.getPressed()[0]:
+            pass
+        x_mouse, y_mouse = mouse.getPos()
+        mouse.setVisible(0)
+        for key in keyboard.keys.values():
+            x_key, y_key = key[0].pos
+            size = key[0].size[0]
+            x_left = x_key - size
+            x_right = x_key + size
+            y_top = y_key + size
+            y_bottom = y_key - size
+            if x_left <= x_mouse <= x_right and y_bottom <= y_mouse <= y_top:
+                logger.info(key[0].name + ' pressed!')
+                key_pressed = True
+
+                #TODO: change into actual backspace key
+                if key[0].name == "smaller":
+                    text = text[:-1]
+                    highlights[key[0].name] = [3]
+                    keyboard.run(highlights, FEEDBACK_TIME,
+                                 start_marker=["start_feedback"],
+                                 stop_marker=["stop_feedback"])
+                    highlights[key[0].name] = [0]
+                    keyboard.set_field_text("text", text)
+                    i -= 1
+                    break
+
+                if len(key[0].name) <= 1:
+                    character = key[0].name
+                else:
+                    character = SPECIAL_CHARACTERS.get(key[0].name)
+
+                text += character
+
+                highlights[key[0].name] = [3]
+                keyboard.run(highlights, FEEDBACK_TIME,
+                             start_marker=["start_feedback"],
+                             stop_marker=["stop_feedback"])
+                highlights[key[0].name] = [0]
+                keyboard.set_field_text("text", text)
+                i += 1
+                break
+
+        if not key_pressed:
+            logger.info('no key pressed')
+
+    logger.debug(text)
+
+    # Stop experiment
+    keyboard.log(marker=["stop_experiment"])
+    keyboard.window.setMouseVisible(True)
+    keyboard.set_field_text("text", "Experiment finished. Press button to close.")
+    logger.info("Experiment finished. Press button to close.")
+    event.waitKeys()
+    keyboard.set_field_text("text", "Closing...")
+    logger.info("Closing.")
+    keyboard.run(highlights, 5.0)
+    keyboard.set_field_text("text", "")
+    keyboard.quit()
+    logger.info("Experiment closed.")
+
+    return 0
 
 
 if __name__ == "__main__":

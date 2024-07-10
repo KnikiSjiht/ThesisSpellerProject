@@ -6,7 +6,7 @@
 #   stream_name='mock_random1'  # name of the stream
 #   sampling_freq=100
 #   n_channels=2
-#   pre_buffer_s=300             # number of seconds data is prebuffered for, if not specified, 300s will be buffered
+#   pre_buffer_s=300             # number of seconds training data is prebuffered for, if not specified, 300s will be buffered
 #
 # # if markers are specified, they will be sent in given intervals 
 # [random.stream1.markers]

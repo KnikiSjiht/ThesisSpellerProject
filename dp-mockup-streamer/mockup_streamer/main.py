@@ -23,7 +23,7 @@ class EndOfDataError(KeyError):
 
 
 class MockupStream:
-    """A mockup streamer class to represent data from one source
+    """A mockup streamer class to represent training data from one source
     (file or random). Each such stream can have up to one markers stream
     associated which will be streamed in parallel with a separate name
 
@@ -34,13 +34,13 @@ class MockupStream:
     sfreq : float
         Target sampling frequency
     outlet : pylsl.StreamOutlet
-        pylsl StreamOutlet object data is pushed to
+        pylsl StreamOutlet object training data is pushed to
     outlet_mrk : pylsl.StreamOutlet | None
         pylsl StreamOutlet object markers are pushed to
     buffer : np.ndarray
-        The pre buffered data to be streamed from
+        The pre buffered training data to be streamed from
     buffer_i : int
-        index of the current position in the data buffer
+        index of the current position in the training data buffer
     n_pushed : int
         number of samples pushed
     t_start_s : float
@@ -59,21 +59,21 @@ class MockupStream:
         Parameters
         ----------
         files : list[Path] (optional)
-            if provided, data will be streamed from files, else random data
-            will be generateed
+            if provided, training data will be streamed from files, else random training data
+            will be generated
         """
         self.name = name
         self.cfg = cfg
         self.files = files  # can be used if multiple files should be
         self.file_i = 0
         self.outlet = None
-        self.outlet_mrk = None  # will be populated once data is loaded and contains markers or if specified for random data  # noqa
+        self.outlet_mrk = None  # will be populated once training data is loaded and contains markers or if specified for random training data  # noqa
         self.sfreq = cfg["sampling_freq"]
-        self.n_channels = 0  # will be set once data is loaded
+        self.n_channels = 0  # will be set once training data is loaded
 
         self.load_next_data()
 
-        # LSL - init after first data is loaded, as sfreq might be derived
+        # LSL - init after first training data is loaded, as sfreq might be derived
         self.init_outlet()
 
         # after loading, we know if there is markers in the file, if yes
@@ -119,13 +119,13 @@ class MockupStream:
 
         # Have this as a warning since loading will likely take a substantial
         # amount of time
-        logger.warning(f"Loading new data for {self.name}")
+        logger.warning(f"Loading new training data for {self.name}")
 
         # random
         if self.files == []:
             self.n_channels = self.cfg["n_channels"]
 
-            logger.debug("Loading new random data")
+            logger.debug("Loading new random training data")
             data = np.random.randn(
                 self.sfreq * self.cfg.get("pre_buffer_s", 300),
                 self.n_channels,
@@ -171,7 +171,7 @@ class MockupStream:
             ):
                 self.file_i = 0
 
-        # put data to buffer and start indexing from zero
+        # put training data to buffer and start indexing from zero
         self.init_buffer(data, markers=markers)
 
     def push(self):
@@ -203,6 +203,7 @@ class MockupStream:
         msk = (self.markers[:, 0] > idx_from) & (self.markers[:, 0] < idx_to)
         if msk.any():
             for mrk in self.markers[msk, 1]:
+                logger.debug(f"Pushing marker: {mrk}")
                 self.outlet_mrk.push_sample([mrk])
 
 
@@ -315,9 +316,9 @@ def mne_raw_to_data_and_markers(
     return data, ev[:, [0, 2]]
 
 
-# # IGNORE the meta data for now
+# # IGNORE the meta training data for now
 # def add_bv_ch_info(info: pylsl.StreamInfo, raw: mne.io.BaseRaw):
-#     """Add channel meta data to a pylsl.StreamInfo object
+#     """Add channel meta training data to a pylsl.StreamInfo object
 #
 #     Parameters
 #     ----------
@@ -344,25 +345,25 @@ def mne_raw_to_data_and_markers(
 #                 loc.append_child_value(name, float(pos))
 #
 #
-# def add_channel_info(info: pylsl.StreamInfo, conf: dict, data: Any):
-#     """Add channel info depending on what type of data was provided"""
+# def add_channel_info(info: pylsl.StreamInfo, conf: dict, training data: Any):
+#     """Add channel info depending on what type of training data was provided"""
 #
 #     info_add_funcs = {
 #         "BV": add_bv_ch_info,
 #         "mne": add_bv_ch_info,
-#         "random": add_bv_ch_info,  # random did load to mne.io.RawArray -> the meta data is comparable to the BV load. # noqa
+#         "random": add_bv_ch_info,  # random did load to mne.io.RawArray -> the meta training data is comparable to the BV load. # noqa
 #     }
 #
-#     info_add_funcs[conf["sources"]["source_type"]](info, data)
+#     info_add_funcs[conf["sources"]["source_type"]](info, training data)
 
 
 def get_data_and_channel_names(
     conf: dict,
 ) -> tuple[list[mne.io.BaseRaw], list[str]]:
-    # Prepare data and stream outlets
+    # Prepare training data and stream outlets
     data = load_data(**conf["sources"])
 
-    # infer available channels from data[0] --> assume number of channels stay constant. Working with set intersections did shuffle names to much and nested list comprehensions would be ugly here.        # noqa
+    # infer available channels from training data[0] --> assume number of channels stay constant. Working with set intersections did shuffle names to much and nested list comprehensions would be ugly here.        # noqa
     ch_names = (
         data[0].ch_names
         if conf["streaming"]["channel_name"] == "all"

@@ -6,14 +6,14 @@ from mockup_streamer.main import MockupStream
 
 
 def cli(
-    n_channels: int = 10,
-    sfreq: int = 100,
+    n_channels: int = 32,
+    sfreq: int = 512,
     pre_buffer_s: int = 300,
     stream_name: str = "mockup_random",
     markers_t_s: int = 1,
-    marker_values: list = ["a", "b", "c"],
+    marker_values: list = ["start_trial"],
 ):
-    """A simple CLI to spawn an LSL mockup stream with random data
+    """A simple CLI to spawn an LSL mockup stream with random training data
 
     Parameters
     ----------

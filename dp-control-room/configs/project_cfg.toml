@@ -18,24 +18,8 @@ modules_root = '../'                                                            
     lsl_out_stream_name = 'mockup_EEG_stream'
     # random_data = true --> use the start random button!
 
-
-[macros]
-
-[macros.start_streaming]
-    name = 'START_STREAMING'
-    description = 'start streaming'
-[macros.start_streaming.default_json]
-    stream_name = 'mockup_stream'
-    date_root = '../'
-[macros.start_streaming.cmds]
-    # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dp-mockup-streamer', 'START']
-    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
-
-[macros.stop_streaming]
-    name = 'STOP_STREAMING'
-    description = 'start streaming'
-[macros.stop_streaming.cmds]
-    # [<target_module>, <PCOMM>, <kwarg_name1 (optional)>, <kwarg_name2 (optional)>]
-    com1 = ['dp-mockup-streamer', 'STOP']
-    # com2 = ['dareplane_spoc_recording', 'SET_SAVE_PATH', 'rec_dir=data_root']
+##---------------------- Decoder -----------------------------------------------
+#[python.modules.dp-decoder]
+#    type= 'io_data'
+#    port = 8083
+#    ip = '127.0.0.1'

@@ -26,7 +26,7 @@ def mne_file(
         )
     )
 
-    fn = tmp_path_factory.mktemp("data") / "raw.fif"
+    fn = tmp_path_factory.mktemp("training data") / "raw.fif"
     raw.save(fn)
     return fn
 
@@ -49,7 +49,7 @@ def test_random_data_setup():
         ),
     )
 
-    # assert that the data generation is as expected
+    # assert that the training data generation is as expected
     streamer = MockupStream(name="test", cfg=cfg)
     assert streamer.buffer.shape == (30_000, 2)
     assert streamer.outlet_mrk is None
@@ -143,7 +143,7 @@ def test_sender_receiver():
     th.join()
     thm.join()
 
-    # assert that last data in buffer agrees with idx of streamer
+    # assert that last training data in buffer agrees with idx of streamer
     last_data = sm.buffer[sm.buffer_i - 1, :]
     assert np.allclose(last_data, buffer_data[-1][0][-1])
 

@@ -5,6 +5,7 @@ from dareplane_utils.default_server.server import DefaultServer
 from fire import Fire
 
 from mockup_streamer.main import run_mockup_streamer_thread
+from mockup_streamer.random_cli import cli
 from mockup_streamer.utils.logging import logger
 
 
@@ -13,7 +14,8 @@ def run_server(port: int = 8080, ip: str = "127.0.0.1", loglevel: int = 10):
 
     pcommand_map = {
         "START": run_mockup_streamer_thread,
-        "START_RANDOM": partial(run_mockup_streamer_thread, random_data=True),
+        #"START_RANDOM": partial(run_mockup_streamer_thread, random_data=True),
+        "START_RANDOM": cli
     }
 
     logger.debug("Initializing server")
