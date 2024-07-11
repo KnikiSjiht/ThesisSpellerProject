@@ -1,6 +1,6 @@
 from fire import Fire
 
-from decoder.decoder import create_classifier
+from decoder.decoder import create_classifier, decode
 from decoder.utils.logging import logger
 from functools import partial
 
@@ -11,7 +11,8 @@ def main(port: int = 8080, ip: str = "127.0.0.1", loglevel: int = 10):
     logger.setLevel(loglevel)
 
     pcommand_map = {
-        "CREATE CLASSIFIER": partial(create_classifier, subject="P001", session="S002", run="001")
+        "CREATE CLASSIFIER": partial(create_classifier, subject="P001", session="S002", run="001"),
+        "DECODE ONLINE": decode
     }
 
     server = DefaultServer(

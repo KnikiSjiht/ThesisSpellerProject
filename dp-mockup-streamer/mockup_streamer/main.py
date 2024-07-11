@@ -203,7 +203,7 @@ class MockupStream:
         msk = (self.markers[:, 0] > idx_from) & (self.markers[:, 0] < idx_to)
         if msk.any():
             for mrk in self.markers[msk, 1]:
-                logger.debug(f"Pushing marker: {mrk}")
+                # logger.debug(f"Pushing marker: {mrk}")
                 self.outlet_mrk.push_sample([mrk])
 
 

@@ -104,8 +104,15 @@ def decode(subject="P001", session="S002"):
     class_loc = os.path.join(classifier_path, f"rCCA_Classifier_sub-{subject}_ses-{session}.pkl")
     with open(class_loc, 'rb') as file:
         classifier = pickle.load(file)
-    decoder = SignalEmbedder(classifier,"mockup_random", "decoder", tmax+1, fs, (l_freq, h_freq), marker_stream_name="mockup_random_markers", markers="start_trial")
+    decoder = SignalEmbedder(classifier=classifier,
+                             input_stream_name="mockup_random",
+                             output_stream_name="decoder",
+                             input_window_seconds=tmax,
+                             new_sfreq=fs,
+                             band=(l_freq, h_freq),
+                             marker_stream_name="KeyboardMarkerStream",
+                             markers="start_trial")
     decoder.init_all()
     decoder.run()
 
-decode()
+

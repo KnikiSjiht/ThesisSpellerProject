@@ -140,8 +140,8 @@ class SignalEmbedder:
     def create_output_stream(self):
         logger.info(f'Creating the output stream "{self.output_stream_name}"')
         info = pylsl.StreamInfo(
-            self.output_stream_name, "MISC", channel_count=self.n_outputs,
-            nominal_srate=pylsl.IRREGULAR_RATE, channel_format="float32",
+            self.output_stream_name, "MISC", channel_count=1,
+            nominal_srate=pylsl.IRREGULAR_RATE, channel_format="int32",
             source_id="signal_embedding",  # TODO should it be more unique?
         )
         self.emb_so = pylsl.StreamOutlet(info)
@@ -197,7 +197,7 @@ class SignalEmbedder:
         else:
             desired = np.isin(markers, self.markers)
         if desired.sum() == 0:
-            logger.debug("No new markers")
+            # logger.debug("No new markers")
             return 0
 
         # logger.debug(f"Loading the latest data time stamps")
@@ -274,11 +274,11 @@ class SignalEmbedder:
         y = self.model.predict(x)[0]
         if np.isnan(y).sum() > 0:
             logger.error("NaNs found after embedding")
-        assert y.ndim == 1
 
-        logger.debug(f"Pushing {y.shape[0]} embedding(s)")
-        logger.info(f"Pushing prediction {y[0]}")
-        self.emb_so.push_chunk(y)
+        #adding 1 to distinguish prediction "0" from empty stream
+        pred = [y[0]+1]
+        logger.info(f"Pushing prediction {pred[0]}")
+        self.emb_so.push_sample(pred)
         return 0
 
     def _run_loop(self, stop_event: threading.Event):
