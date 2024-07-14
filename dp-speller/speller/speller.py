@@ -5,8 +5,7 @@
 
 Python implementation of a keyboard for the noise-tagging project.
 """
-import logging
-import os, json, time
+import json
 import random
 
 import numpy as np
@@ -14,6 +13,8 @@ from pylsl import StreamInfo, StreamOutlet
 from psychopy import visual, event, monitors, misc
 from speller.utils.logging import logger
 from dareplane_utils.stream_watcher.lsl_stream_watcher import StreamWatcher
+import pkg_resources
+from symspellpy import SymSpell, Verbosity
 
 STREAM = True
 SCREEN = 0
@@ -298,6 +299,7 @@ def training(code=CODE, layout_qwerty = False):
     y_pos = SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2
     keyboard.add_text_field("text", "", (SCREEN_SIZE[0] - STT_WIDTH * ppd, TEXT_FIELD_HEIGHT * ppd), (x_pos, y_pos), (0, 0, 0), (-1, -1, -1))
 
+
     # Add the keys
     for y in range(len(keys)):
         for x in range(len(keys[y])):
@@ -419,6 +421,7 @@ def training(code=CODE, layout_qwerty = False):
     logger.info("Experiment closed.")
 
     return 0
+
 def online(n_trials = 10, code=CODE, layout_qwerty = False):
     """
     Example experiment with initial setup and highlighting and presenting a few trials.
@@ -502,8 +505,12 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
     keyboard.set_field_text("text", "")
 
     text = ""
+    finished = False
+    finish_check = False
     decoder_data_old = []
-    for i in range(n_trials):
+    i = 0
+    while not finished:
+        i += 1
         logger.debug(f"Starting trial {i}")
 
         keyboard.run(codes, TRIAL_TIME,
@@ -531,6 +538,20 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
         target_key = keys[row_index][target_]
         logger.debug(f"{decode_result} corresponds to {target_key}")
 
+        if target_key == "hash":
+            highlights[target_key] = [3]
+            keyboard.run(highlights, FEEDBACK_TIME,
+                         start_marker=["start_feedback"],
+                         stop_marker=["stop_feedback"])
+            highlights[target_key] = [0]
+            if finish_check:
+                finished = True
+            else:
+                finish_check = True
+                keyboard.set_field_text("suggestion", "Finished? Select '#' again to stop.")
+            logger.debug(f"end of trial {i}")
+            break
+
         if target_key == "smaller":
             text = text[:-1]
             highlights[target_key] = [3]
@@ -539,9 +560,8 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
                          stop_marker=["stop_feedback"])
             highlights[target_key] = [0]
             keyboard.set_field_text("text", text)
-            # i -= 1
             logger.debug(f"end of trial {i}")
-            continue
+            break
 
         if len(target_key) <= 1:
             character = target_key
@@ -556,7 +576,6 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
                      stop_marker=["stop_feedback"])
         highlights[target_key] = [0]
         keyboard.set_field_text("text", text)
-        # i += 1
         logger.debug(f"end of trial {i}")
 
     logger.debug(f"final text is \'{text}\'")
@@ -619,7 +638,7 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
     # Stop experiment
 
     keyboard.log(marker=["stop_experiment"])
-    keyboard.window.setMouseVisible(True)
+    keyboard.log(marker=[f"Number of required trials: {i}"])
     keyboard.set_field_text("text", "Experiment finished. Press button to close.")
     logger.info("Experiment finished. Press button to close.")
     event.waitKeys()
@@ -632,6 +651,305 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
 
     return 0
 
+def online_autocomplete(n_trials = 10, code=CODE, layout_qwerty = False):
+    """
+    Example experiment with initial setup and highlighting and presenting a few trials.
+    """
+    logger.setLevel(10)
+
+    keys: np.array
+    if layout_qwerty:
+        keys = KEYSQWERTY
+    else:
+        keys = KEYSABCDE
+    # Initialize keyboard
+    keyboard = Keyboard(size=SCREEN_SIZE, width=SCREEN_WIDTH, distance=SCREEN_DISTANCE, screen=SCREEN, window_color=SCREEN_COLOR, stream=STREAM)
+    ppd = keyboard.get_pixels_per_degree()
+
+    # Add stimulus timing tracker at left top of the screen
+    x_pos = -SCREEN_SIZE[0] / 2 + STT_WIDTH / 2 * ppd
+    y_pos = SCREEN_SIZE[1] / 2 - STT_HEIGHT / 2 * ppd
+    images = ["images/black.png", "images/white.png"]
+    keyboard.add_key("stt", (STT_WIDTH * ppd, STT_HEIGHT * ppd), (x_pos, y_pos), images)
+
+    # Add text field at the top of the screen
+    x_pos = STT_WIDTH * ppd
+    y_pos = SCREEN_SIZE[1] / 2 - TEXT_FIELD_HEIGHT * ppd / 2
+    keyboard.add_text_field("text", "", (SCREEN_SIZE[0] - STT_WIDTH * ppd, TEXT_FIELD_HEIGHT * ppd), (x_pos, y_pos), (0, 0, 0), (-1, -1, -1))
+
+    keyboard.add_text_field("suggestion", "", (SCREEN_SIZE[0] - STT_WIDTH * ppd, TEXT_FIELD_HEIGHT * ppd),
+                            (x_pos, y_pos - TEXT_FIELD_HEIGHT*ppd), (0.1, 0.1, 0.1), (-1, -1, -1))
+    # Add the keys
+    for y in range(len(keys)):
+        for x in range(len(keys[y])):
+            x_pos = (x - len(keys[y]) / 2 + 0.5) * (KEY_WIDTH + KEY_SPACE) * ppd
+            y_pos = -(y - len(keys) / 2) * (KEY_HEIGHT + KEY_SPACE) * ppd - TEXT_FIELD_HEIGHT * ppd
+            images = [f"images/{keys[y][x]}_{color}.png" for color in KEY_COLORS]
+            keyboard.add_key(keys[y][x], (KEY_WIDTH * ppd, KEY_HEIGHT * ppd), (x_pos, y_pos), images)
+
+    # Load sequences
+    if code != "onoff":
+        tmp = np.load(f"C:/Users/Thijs/Documents/Studie/Thesis/Speller Project/dp-speller/speller/codes/{code}.npz")["codes"]
+    codes = dict()
+    i = 0
+    for row in keys:
+        for key in row:
+            if code == "onoff":
+                codes[key] = [1, 0]
+            else:
+                codes[key] = tmp[:, i].tolist()
+            i += 1
+    if code == "onoff":
+        codes["stt"] = [1, 0]
+    else:
+        codes["stt"] = [1] + [0] * int((1 + TRIAL_TIME) * keyboard.get_framerate())
+
+    # Set highlights
+    highlights = dict()
+    for row in keys:
+        for key in row:
+            highlights[key] = [0]
+    highlights["stt"] = [0]
+
+
+
+    # Wait for start
+    keyboard.window.setMouseVisible(True)
+    keyboard.set_field_text("text", "Press button to start.")
+    keyboard.set_field_text("suggestion", "")
+    logger.info("Press button to start.")
+    event.waitKeys()
+    keyboard.set_field_text("text", "")
+    logger.info("Starting.")
+
+
+    # Log codes
+    keyboard.log([json.dumps({"codes":codes})])
+
+    #connect to decoder stream
+    sw = StreamWatcher(name="decoder")
+    sw.connect_to_stream()
+
+    # Start experiment
+    keyboard.log(marker=["start_experiment"])
+    keyboard.set_field_text("text", "Starting...")
+    keyboard.run(highlights, 5.0)
+    keyboard.set_field_text("text", "")
+
+    text = ""
+    suggestion = ""
+
+    sym_spell = SymSpell()
+    dictionary_path = pkg_resources.resource_filename("symspellpy", "frequency_dictionary_en_82_765.txt")
+    sym_spell.load_dictionary(dictionary_path, 0, 1)
+    bigram_path = pkg_resources.resource_filename("symspellpy", "frequency_bigramdictionary_en_243_342.txt")
+    sym_spell.load_bigram_dictionary(bigram_path, 0, 2)
+
+    finished = False
+    finish_check = False
+    decoder_data_old = []
+    i = 0
+    while not finished:
+        i += 1
+        logger.debug(f"Starting trial {i}")
+
+        keyboard.run(codes, TRIAL_TIME,
+                     start_marker=["start_trial"],
+                     stop_marker=["stop_trial"])
+
+        decode_result = []
+
+        while len(decode_result) == 0:
+            sw.update()
+            decoder_data_raw = sw.unfold_buffer()
+            decoder_data = decoder_data_raw[decoder_data_raw != 0]
+            decode_result = np.setdiff1d(decoder_data, decoder_data_old)
+
+        logger.debug(f"Received {decode_result} from decoder stream")
+
+        decoder_data_old = decoder_data
+
+        decode_result[0] -= 1
+        row_index = 0
+        target_ = decode_result[0]
+        while target_ >= len(keys[row_index]):
+            target_ -= len(keys[row_index])
+            row_index += 1
+        target_key = keys[row_index][target_]
+        logger.debug(f"{decode_result} corresponds to {target_key}")
+
+        if target_key == "hash":
+            highlights[target_key] = [3]
+            keyboard.run(highlights, FEEDBACK_TIME,
+                        start_marker=["start_feedback"],
+                        stop_marker=["stop_feedback"])
+            highlights[target_key] = [0]
+            if finish_check:
+                finished = True
+            else:
+                finish_check = True
+                keyboard.set_field_text("suggestion", "Finished? Select '#' again to stop.")
+            logger.debug(f"end of trial {i}")
+            break
+
+        if target_key == "smaller":
+            text = text[:-1]
+            highlights[target_key] = [3]
+            keyboard.run(highlights, FEEDBACK_TIME,
+                         start_marker=["start_feedback"],
+                         stop_marker=["stop_feedback"])
+            highlights[target_key] = [0]
+            keyboard.set_field_text("text", text)
+            logger.debug(f"end of trial {i}")
+            break
+
+        if target_key == "exclamation":
+            text = suggestion
+            highlights[target_key] = [3]
+            keyboard.run(highlights, FEEDBACK_TIME,
+                        start_marker=["start_feedback"],
+                        stop_marker=["stop_feedback"])
+            highlights[target_key] = [0]
+            keyboard.set_field_text("text", text)
+
+            suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, transfer_casing=True)
+            suggestion = suggestions[0].term
+            keyboard.set_field_text("suggestion", suggestion)
+            logger.debug(f"end of trial {i}")
+            break
+
+        if len(target_key) <= 1:
+            character = target_key
+        else:
+            character = SPECIAL_CHARACTERS.get(target_key)
+
+        text += character
+
+        highlights[target_key] = [3]
+        keyboard.run(highlights, FEEDBACK_TIME,
+                     start_marker=["start_feedback"],
+                     stop_marker=["stop_feedback"])
+        highlights[target_key] = [0]
+        keyboard.set_field_text("text", text)
+        # i += 1
+        logger.debug(f"end of trial {i}")
+
+    logger.debug(f"final text is \'{text}\'")
+
+    # Code for clicking keys
+    # mouse = event.Mouse(visible=False)
+    # text = ""
+    # suggestion = ""
+    #
+    # sym_spell = SymSpell()
+    # dictionary_path = pkg_resources.resource_filename("symspellpy", "frequency_dictionary_en_82_765.txt")
+    # sym_spell.load_dictionary(dictionary_path, 0, 1)
+    # bigram_path = pkg_resources.resource_filename("symspellpy", "frequency_bigramdictionary_en_243_342.txt")
+    # sym_spell.load_bigram_dictionary(bigram_path, 0, 2)
+    #
+    # finished = False
+    # finish_check = False
+    #
+    #
+    # while not finished:
+    #     key_pressed = False
+    #     mouse.setVisible(1)
+    #     while not mouse.getPressed()[0]:
+    #         pass
+    #     x_mouse, y_mouse = mouse.getPos()
+    #     mouse.setVisible(0)
+    #     for key in keyboard.keys.values():
+    #         x_key, y_key = key[0].pos
+    #         size = key[0].size[0]
+    #         x_left = x_key - size
+    #         x_right = x_key + size
+    #         y_top = y_key + size
+    #         y_bottom = y_key - size
+    #         if x_left <= x_mouse <= x_right and y_bottom <= y_mouse <= y_top:
+    #             logger.info(key[0].name + ' pressed!')
+    #             key_pressed = True
+    #
+    #             if key[0].name == "hash":
+    #                 highlights[key[0].name] = [3]
+    #                 keyboard.run(highlights, FEEDBACK_TIME,
+    #                              start_marker=["start_feedback"],
+    #                              stop_marker=["stop_feedback"])
+    #                 highlights[key[0].name] = [0]
+    #                 if finish_check:
+    #                     finished = True
+    #                 else:
+    #                     finish_check = True
+    #                     keyboard.set_field_text("suggestion", "Finished? Select '#' again to stop.")
+    #                 break
+    #
+    #             finish_check = False
+    #
+    #             #TODO: change into actual backspace key
+    #             if key[0].name == "smaller":
+    #                 text = text[:-1]
+    #                 highlights[key[0].name] = [3]
+    #                 keyboard.run(highlights, FEEDBACK_TIME,
+    #                              start_marker=["start_feedback"],
+    #                              stop_marker=["stop_feedback"])
+    #                 highlights[key[0].name] = [0]
+    #                 keyboard.set_field_text("text", text)
+    #                 break
+    #
+    #             if key[0].name == "exclamation":
+    #                 text = suggestion
+    #                 highlights[key[0].name] = [3]
+    #                 keyboard.run(highlights, FEEDBACK_TIME,
+    #                              start_marker=["start_feedback"],
+    #                              stop_marker=["stop_feedback"])
+    #                 highlights[key[0].name] = [0]
+    #                 keyboard.set_field_text("text", text)
+    #
+    #                 suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, transfer_casing=True)
+    #                 suggestion = suggestions[0].term
+    #                 keyboard.set_field_text("suggestion", suggestion)
+    #                 break
+    #
+    #             if len(key[0].name) <= 1:
+    #                 character = key[0].name
+    #             else:
+    #                 character = SPECIAL_CHARACTERS.get(key[0].name)
+    #
+    #             text += character
+    #
+    #             highlights[key[0].name] = [3]
+    #             keyboard.run(highlights, FEEDBACK_TIME,
+    #                          start_marker=["start_feedback"],
+    #                          stop_marker=["stop_feedback"])
+    #             highlights[key[0].name] = [0]
+    #             keyboard.set_field_text("text", text)
+    #
+    #             suggestions = sym_spell.lookup_compound(text, max_edit_distance=2, transfer_casing=True)
+    #             suggestion = suggestions[0].term
+    #             keyboard.set_field_text("suggestion", suggestion)
+    #             break
+    #
+    #     if not key_pressed:
+    #         logger.info('no key pressed')
+
+
+    # Stop experiment
+
+
+    keyboard.log(marker=["stop_experiment"])
+    keyboard.log(marker=[f"Number of required trials: {i}"])
+    keyboard.window.setMouseVisible(True)
+    keyboard.set_field_text("text", "Experiment finished. Press button to close.")
+    keyboard.set_field_text("suggestion", "")
+    logger.info("Experiment finished. Press button to close.")
+    event.waitKeys()
+    keyboard.set_field_text("text", "Closing...")
+    logger.info("Closing.")
+    keyboard.run(highlights, 5.0)
+    keyboard.set_field_text("text", "")
+    keyboard.quit()
+    logger.info("Experiment closed.")
+
+    return 0
 
 if __name__ == "__main__":
     import argparse

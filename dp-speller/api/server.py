@@ -1,7 +1,7 @@
 from fire import Fire
 
 from speller.utils.logging import logger
-from speller.speller import training, online
+from speller.speller import training, online, online_autocomplete
 from functools import partial
 
 from dareplane_utils.default_server.server import DefaultServer
@@ -14,7 +14,8 @@ def main(port: int = 8080, ip: str = "127.0.0.1", loglevel: int = 10):
         "TRAINING ABC": training,
         "ONLINE ABC": online,
         "TRAINING QWERTY": partial(training, layout_qwerty=True),
-        "ONLINE QWERTY": partial(online, layout_qwerty=True)
+        "ONLINE QWERTY": partial(online, layout_qwerty=True),
+        "ONLINE AUTOCOMLPLETE": partial(online_autocomplete, layout_qwerty=True)
     }
 
     server = DefaultServer(
