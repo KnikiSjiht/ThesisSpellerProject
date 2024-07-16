@@ -759,14 +759,17 @@ def online_autocomplete(n_trials = 10, code=CODE, layout_qwerty = False):
 
         while len(decode_result) == 0:
             sw.update()
-            decoder_data_raw = sw.unfold_buffer()
-            decoder_data = decoder_data_raw[decoder_data_raw != 0]
-            if len(decoder_data) > len(decoder_data_old):
-                decode_result = decoder_data[len(decoder_data_old):]
+            # decoder_data_raw = sw.unfold_buffer()
+            # decoder_data = decoder_data_raw[decoder_data_raw != 0]
+            # if len(decoder_data) > len(decoder_data_old):
+            #     decode_result = decoder_data[len(decoder_data_old):]
+            if sw.n_new > 0:
+                decode_result = sw.unfold_buffer()[-sw.n_new:]
+                sw.n_new = 0
 
         logger.debug(f"Received {decode_result} from decoder stream")
 
-        decoder_data_old = decoder_data
+        # decoder_data_old = decoder_data
 
         decode_result[0] -= 1
         row_index = 0

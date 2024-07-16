@@ -133,8 +133,6 @@ class SignalEmbedder:
             n_in_channels=len(self.chs_info),
             filter_buffer_s=self.buffer_size_s,
         )
-
-
         return 0
 
     def create_output_stream(self):

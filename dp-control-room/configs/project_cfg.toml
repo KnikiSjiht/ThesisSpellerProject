@@ -9,14 +9,14 @@ modules_root = '../'                                                            
     port = 8081
     ip = '127.0.0.1'
 
-# -------------------- Mockup Streamer ---------------------------------------
-[python.modules.dp-mockup-streamer]
-    type = 'io_data'
-    port = 8082
-    ip = '127.0.0.1'
-[python.modules.dp-mockup-streamer.kwargs]
-    lsl_out_stream_name = 'mockup_EEG_stream'
-    # random_data = true --> use the start random button!
+## -------------------- Mockup Streamer ---------------------------------------
+#[python.modules.dp-mockup-streamer]
+#    type = 'io_data'
+#    port = 8082
+#    ip = '127.0.0.1'
+#[python.modules.dp-mockup-streamer.kwargs]
+#    lsl_out_stream_name = 'mockup_EEG_stream'
+#    # random_data = true --> use the start random button!
 
 #---------------------- Decoder -----------------------------------------------
 [python.modules.dp-decoder]

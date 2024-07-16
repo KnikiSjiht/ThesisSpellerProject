@@ -8,6 +8,7 @@ from decoder.utils.logging import logger
 from scipy.signal import butter, sosfilt, resample
 import pickle
 from decoder.signal_controller import SignalEmbedder
+from dareplane_utils.signal_processing.filtering import FilterBank
 import time
 # from ...dp-speller.speller.speller import TRIAL_TIME, PR, CODE # Imports from another module? probably not the DarePlane way? Another way of ensuring important values such a s trial_time and stimulus presentation are correct?
 
@@ -49,6 +50,24 @@ def create_classifier(subject, session, run):
     # Read events
     events = mne.find_events(raw, stim_channel="Trig1", verbose=False)
 
+    #create filterbank
+    fb = FilterBank(
+        bands={"band": (l_freq, h_freq)},
+        sfreq=raw.info["sfreq"],
+        output="signal",
+        n_in_channels=len(raw.info["ch_names"]),
+        # n_in_channels=n_channels,
+        filter_buffer_s=raw.times[-1]
+    )
+
+    # data = raw.get_data()[1:33, :].T
+    data = raw.get_data().T
+
+    fb.filter(data, raw.times)
+
+    data_filtered = fb.get_data()
+    raw_f = mne.io.RawArray(data_filtered.T[0], raw.info)
+
     # Slicing
     #X = mne.Epochs(raw, events=events, tmin=tmin - window, tmax=tmax, baseline=None, picks="eeg", preload=True,
     #               verbose=False).get_data(copy=True, verbose=False)
@@ -64,11 +83,14 @@ def create_classifier(subject, session, run):
     # Remove 500 ms around
     #X = X[:, :, int(window * fs):]
     #logger.info(f"X shape: {X.shape} (trials x channels x samples)")
-    raw.filter(l_freq=l_freq, h_freq=h_freq)
-    epo = mne.Epochs(raw, events=events, tmin=tmin - window, tmax=tmax, baseline=None, picks="eeg", preload=True,
+    # raw.filter(l_freq=l_freq, h_freq=h_freq)
+
+    epo = mne.Epochs(raw_f, events=events, tmin=tmin - window, tmax=tmax, baseline=None, picks="eeg", preload=True,
                    verbose=False)
+    #need resampling?
     epo.resample(fs)
     X = epo.get_data(tmin=tmin, tmax=tmax)
+
     logger.info(f"X shape: {X.shape} (trials x channels x samples)")
     
     # Extract target labels
@@ -104,8 +126,8 @@ def create_classifier(subject, session, run):
         rcca.fit(X_trn, y_trn)
 
         yh = rcca.predict(X_tst)[:, 0]
-        print(yh)
-        print(y_tst)
+        # print(yh)
+        # print(y_tst)
         accuracy[i_fold] = np.mean(yh == y_tst)
         
     rcca.fit(X, y)
@@ -115,6 +137,8 @@ def create_classifier(subject, session, run):
     with open(class_loc, 'wb') as file:
         pickle.dump(rcca, file)
     logger.info(f"Classifier saved to {class_loc}")
+
+    return 0
 
 def decode(subject, session):
     class_loc = os.path.join(classifier_path, f"rCCA_Classifier_sub-{subject}_ses-{session}.pkl")
@@ -129,5 +153,5 @@ def decode(subject, session):
                              marker_stream_name="KeyboardMarkerStream",
                              markers="start_trial")
     decoder.init_all()
-    decoder.run()
+    return decoder.run()
 
