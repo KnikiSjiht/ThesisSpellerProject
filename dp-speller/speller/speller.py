@@ -75,7 +75,7 @@ class Keyboard(object):
         Create a keyboard.
 
         Args:
-            size (array-like): 
+            size (array-like):
                 The (width, height) of the window in pixels, i.e., resolution
             width (float):
                 The width of the screen in centimeters
@@ -110,7 +110,7 @@ class Keyboard(object):
         Get the size of the window in pixels, i.e., resolution.
 
         Returns:
-            (array-like): 
+            (array-like):
                 The (width, height) of the window in pixels, i.e., resolution
         """
         return self.window.size
@@ -120,7 +120,7 @@ class Keyboard(object):
         Get the pixels per degree of visual angle of the window.
 
         Returns:
-            (float): 
+            (float):
                 The pixels per degree of visual angle
         """
         return misc.deg2pix(1.0, self.monitor)
@@ -130,7 +130,7 @@ class Keyboard(object):
         Get the framerate in Hz of the window.
 
         Returns:
-            (float): 
+            (float):
                 The framerate in Hz
         """
         return int(np.round(self.window.getActualFrameRate()))
@@ -147,14 +147,14 @@ class Keyboard(object):
             pos (array-like):
                 The (x, y) coordinate of the center of the key, relative to the center of the window
             images (array-like):
-                The images of the key. The first image is the default key. Indices will correspond to the 
+                The images of the key. The first image is the default key. Indices will correspond to the
                 values of the codes. Default: ["black.png", "white.png"]
         """
         assert name not in self.keys, "Trying to add a box with a name that already exists!"
         self.keys[name] = []
         for image in images:
-            self.keys[name].append(visual.ImageStim(win=self.window, image=image, 
-            units="pix", pos=pos, size=size, autoLog=False, name=name))
+            self.keys[name].append(visual.ImageStim(win=self.window, image=image,
+                                                    units="pix", pos=pos, size=size, autoLog=False, name=name))
 
         # Set autoDraw to True for first default key to keep app visible
         self.keys[name][0].setAutoDraw(True)
@@ -178,10 +178,10 @@ class Keyboard(object):
                 The color of the text on the text field, default: (-1, -1, -1)
         """
         assert name not in self.fields, "Trying to add a text field with a name that already extists!"
-        self.fields[name] = self.fields[name] = visual.TextBox2(win=self.window, text=text, font='Courier', 
-            units="pix", pos=pos, size=size, letterHeight=0.5*size[1], 
-            color=text_color, fillColor=field_color, alignment="left", 
-            autoDraw=True, autoLog=False)
+        self.fields[name] = self.fields[name] = visual.TextBox2(win=self.window, text=text, font='Courier',
+                                                                units="pix", pos=pos, size=size, letterHeight=0.5*size[1],
+                                                                color=text_color, fillColor=field_color, alignment="left",
+                                                                autoDraw=True, autoLog=False)
 
     def set_field_text(self, name, text):
         """
@@ -203,19 +203,19 @@ class Keyboard(object):
             if on_flip:
                 self.window.callOnFlip(self.outlet.push_sample, marker)
             else:
-                self.outlet.push_sample(marker)    
-    
+                self.outlet.push_sample(marker)
+
     def run(self, codes, duration=None, start_marker=None, stop_marker=None):
         """
         Present a trial with concurrent flashing of each of the symbols.
 
         Args:
-            codes (dict): 
-                A dictionary with keys being the symbols to flash and the value a list (the code 
+            codes (dict):
+                A dictionary with keys being the symbols to flash and the value a list (the code
                 sequence) of integer states (images) for each frame
             duration (float):
                 The duration of the trial in seconds. If the duration is longer than the code
-                sequence, it is repeated. If no duration is given, the full length of the first 
+                sequence, it is repeated. If no duration is given, the full length of the first
                 code is used. Default: None
         """
         # Set number of frames
@@ -257,7 +257,7 @@ class Keyboard(object):
         Test if a quit is forced by the user by a key-press.
 
         Returns:
-            (bool): 
+            (bool):
                 True is quit forced, otherwise False
         """
         # If quit keys pressed, return True
@@ -310,7 +310,7 @@ def training(code=CODE, layout_qwerty = False):
 
     # Load sequences
     if code != "onoff":
-        tmp = np.load(f"C:/Users/Thijs/Documents/Studie/Thesis/Speller Project/dp-speller/speller/codes/{code}.npz")["codes"]
+        tmp = np.load(f"D:/Users/bci/bachelor_project_s1028931/ThesisSpellerProject/dp-speller/speller/codes/{code}.npz")["codes"]
     codes = dict()
     i = 0
     for row in keys:
@@ -378,30 +378,20 @@ def training(code=CODE, layout_qwerty = False):
         # Cue
         highlights[target_key] = [-2]
         keyboard.run(highlights, CUE_TIME,
-            start_marker=["start_cue"],
-            stop_marker=["stop_cue"])
+                     start_marker=["start_cue"],
+                     stop_marker=["stop_cue"])
         highlights[target_key] = [0]
 
         # Trial
         keyboard.run(codes, TRIAL_TIME,
-            start_marker=["start_trial"],
-            stop_marker=["stop_trial"])
+                     start_marker=["start_trial"],
+                     stop_marker=["stop_trial"])
 
-        # Update text
-        text += target_key
-        keyboard.set_field_text("text", text)
-
-        # Feedback
-        highlights[target_key] = [-1]
-        keyboard.run(highlights, FEEDBACK_TIME,
-            start_marker=["start_feedback"],
-            stop_marker=["stop_feedback"])
-        highlights[target_key] = [0]
 
         # Inter-trial time
         keyboard.run(highlights, ITI_TIME,
-            start_marker=["start_intertrial"],
-            stop_marker=["stop_intertrial"])
+                     start_marker=["start_intertrial"],
+                     stop_marker=["stop_intertrial"])
 
         i_trial += 1
 
@@ -458,7 +448,7 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
 
     # Load sequences
     if code != "onoff":
-        tmp = np.load(f"C:/Users/Thijs/Documents/Studie/Thesis/Speller Project/dp-speller/speller/codes/{code}.npz")["codes"]
+        tmp = np.load(f"D:/Users/bci/bachelor_project_s1028931/ThesisSpellerProject/dp-speller/speller/codes/{code}.npz")["codes"]
     codes = dict()
     i = 0
     for row in keys:
@@ -523,7 +513,8 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
             sw.update()
             decoder_data_raw = sw.unfold_buffer()
             decoder_data = decoder_data_raw[decoder_data_raw != 0]
-            decode_result = np.setdiff1d(decoder_data, decoder_data_old)
+            if len(decoder_data) > len(decoder_data_old):
+                decode_result = decoder_data[len(decoder_data_old):]
 
         logger.debug(f"Received {decode_result} from decoder stream")
 
@@ -548,7 +539,6 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
                 finished = True
             else:
                 finish_check = True
-                keyboard.set_field_text("suggestion", "Finished? Select '#' again to stop.")
             logger.debug(f"end of trial {i}")
             break
 
@@ -569,13 +559,21 @@ def online(n_trials = 10, code=CODE, layout_qwerty = False):
             character = SPECIAL_CHARACTERS.get(target_key)
 
         text += character
+        keyboard.set_field_text("text", text)
 
         highlights[target_key] = [3]
         keyboard.run(highlights, FEEDBACK_TIME,
                      start_marker=["start_feedback"],
                      stop_marker=["stop_feedback"])
         highlights[target_key] = [0]
-        keyboard.set_field_text("text", text)
+
+
+        # Inter-trial time
+        keyboard.run(highlights, ITI_TIME,
+                     start_marker=["start_intertrial"],
+                     stop_marker=["stop_intertrial"])
+
+
         logger.debug(f"end of trial {i}")
 
     logger.debug(f"final text is \'{text}\'")
@@ -689,7 +687,7 @@ def online_autocomplete(n_trials = 10, code=CODE, layout_qwerty = False):
 
     # Load sequences
     if code != "onoff":
-        tmp = np.load(f"C:/Users/Thijs/Documents/Studie/Thesis/Speller Project/dp-speller/speller/codes/{code}.npz")["codes"]
+        tmp = np.load(f"D:/Users/bci/bachelor_project_s1028931/ThesisSpellerProject/dp-speller/speller/codes/{code}.npz")["codes"]
     codes = dict()
     i = 0
     for row in keys:
@@ -763,7 +761,8 @@ def online_autocomplete(n_trials = 10, code=CODE, layout_qwerty = False):
             sw.update()
             decoder_data_raw = sw.unfold_buffer()
             decoder_data = decoder_data_raw[decoder_data_raw != 0]
-            decode_result = np.setdiff1d(decoder_data, decoder_data_old)
+            if len(decoder_data) > len(decoder_data_old):
+                decode_result = decoder_data[len(decoder_data_old):]
 
         logger.debug(f"Received {decode_result} from decoder stream")
 
@@ -781,8 +780,8 @@ def online_autocomplete(n_trials = 10, code=CODE, layout_qwerty = False):
         if target_key == "hash":
             highlights[target_key] = [3]
             keyboard.run(highlights, FEEDBACK_TIME,
-                        start_marker=["start_feedback"],
-                        stop_marker=["stop_feedback"])
+                         start_marker=["start_feedback"],
+                         stop_marker=["stop_feedback"])
             highlights[target_key] = [0]
             if finish_check:
                 finished = True
@@ -807,8 +806,8 @@ def online_autocomplete(n_trials = 10, code=CODE, layout_qwerty = False):
             text = suggestion
             highlights[target_key] = [3]
             keyboard.run(highlights, FEEDBACK_TIME,
-                        start_marker=["start_feedback"],
-                        stop_marker=["stop_feedback"])
+                         start_marker=["start_feedback"],
+                         stop_marker=["stop_feedback"])
             highlights[target_key] = [0]
             keyboard.set_field_text("text", text)
 
@@ -824,14 +823,19 @@ def online_autocomplete(n_trials = 10, code=CODE, layout_qwerty = False):
             character = SPECIAL_CHARACTERS.get(target_key)
 
         text += character
+        keyboard.set_field_text("text", text)
 
         highlights[target_key] = [3]
         keyboard.run(highlights, FEEDBACK_TIME,
                      start_marker=["start_feedback"],
                      stop_marker=["stop_feedback"])
         highlights[target_key] = [0]
-        keyboard.set_field_text("text", text)
-        # i += 1
+
+
+        # Inter-trial time
+        keyboard.run(highlights, ITI_TIME,
+                     start_marker=["start_intertrial"],
+                     stop_marker=["stop_intertrial"])
         logger.debug(f"end of trial {i}")
 
     logger.debug(f"final text is \'{text}\'")
@@ -961,5 +965,3 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--code", type=str, help="code set to use", default="onoff")
     args = parser.parse_args()
     test(n_trials=args.ntrials, code=args.code)
-
-

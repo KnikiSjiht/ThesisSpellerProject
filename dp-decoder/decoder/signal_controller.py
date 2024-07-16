@@ -225,7 +225,7 @@ class SignalEmbedder:
             return 0
 
         logger.debug(f"Loading the latest data samples")
-        x = self.fb.get_data()[:, :, 0]
+        x = self.fb.get_data()[:, 1:33, 0]
         assert len(t) == x.shape[0]
         logger.debug(
             f"Epoching {n_to_process} events ({markers[desired & to_process]}) "
