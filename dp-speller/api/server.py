@@ -13,9 +13,10 @@ def main(port: int = 8080, ip: str = "127.0.0.1", loglevel: int = 10):
     pcommand_map = {
         "TRAINING ABC": training,
         "ONLINE ABC": online,
+        "ONLINE TEXTCORRECT ABC": online_autocomplete,
         "TRAINING QWERTY": partial(training, layout_qwerty=True),
         "ONLINE QWERTY": partial(online, layout_qwerty=True),
-        "ONLINE AUTOCOMLPLETE": partial(online_autocomplete, layout_qwerty=True)
+        "ONLINE TEXTCORRECT QWERTY": partial(online_autocomplete, layout_qwerty=True)
     }
 
     server = DefaultServer(
